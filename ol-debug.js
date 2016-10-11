@@ -1,6 +1,6 @@
 // OpenLayers 3. See http://openlayers.org/
 // License: https://raw.githubusercontent.com/openlayers/ol3/master/LICENSE.md
-// Version: v3.18.0
+// Version: v3.18.1
 ;(function (root, factory) {
   if (typeof exports === "object") {
     module.exports = factory();
@@ -33824,7 +33824,7 @@ ol.render.canvas.Replay.prototype.replay_ = function(
         var dx = x2 - x1;
         var dy = y2 - y1;
         var r = Math.sqrt(dx * dx + dy * dy);
-        context.moveTo(x2, y2);
+        context.moveTo(x1 + r, y1);
         context.arc(x1, y1, r, 0, 2 * Math.PI, true);
         ++i;
         break;
@@ -38584,7 +38584,7 @@ ol.renderer.canvas.VectorTileLayer.prototype.renderTileReplays_ = function(
   var size = frameState.size;
   var pixelScale = pixelRatio / resolution;
   var source = /** @type {ol.source.VectorTile} */ (layer.getSource());
-  var tilePixelRatio = source.getTilePixelRatio(pixelRatio);
+  var tilePixelRatio = source.getTilePixelRatio();
 
   var transform = this.getTransform(frameState, 0);
 
@@ -38674,7 +38674,7 @@ ol.renderer.canvas.VectorTileLayer.prototype.createReplayGroup = function(tile,
   var resolution = tileGrid.getResolution(tileCoord[0]);
   var extent, reproject, tileResolution;
   if (pixelSpace) {
-    var tilePixelRatio = tileResolution = source.getTilePixelRatio(pixelRatio);
+    var tilePixelRatio = tileResolution = source.getTilePixelRatio();
     var tileSize = ol.size.toSize(tileGrid.getTileSize(tileCoord[0]));
     extent = [0, 0, tileSize[0] * tilePixelRatio, tileSize[1] * tilePixelRatio];
   } else {
@@ -38743,7 +38743,6 @@ ol.renderer.canvas.VectorTileLayer.prototype.createReplayGroup = function(tile,
  * @inheritDoc
  */
 ol.renderer.canvas.VectorTileLayer.prototype.forEachFeatureAtCoordinate = function(coordinate, frameState, callback, thisArg) {
-  var pixelRatio = frameState.pixelRatio;
   var resolution = frameState.viewState.resolution;
   var rotation = frameState.viewState.rotation;
   var layer = this.getLayer();
@@ -38766,7 +38765,7 @@ ol.renderer.canvas.VectorTileLayer.prototype.forEachFeatureAtCoordinate = functi
     }
     if (tile.getProjection().getUnits() === ol.proj.Units.TILE_PIXELS) {
       origin = ol.extent.getTopLeft(tileExtent);
-      tilePixelRatio = source.getTilePixelRatio(pixelRatio);
+      tilePixelRatio = source.getTilePixelRatio();
       tileResolution = tileGrid.getResolution(tileCoord[0]) / tilePixelRatio;
       tileSpaceCoordinate = [
         (coordinate[0] - origin[0]) / tileResolution,
@@ -38888,7 +38887,7 @@ ol.renderer.canvas.VectorTileLayer.prototype.renderTileImage_ = function(
     tileContext.translate(width / 2, height / 2);
     var pixelSpace = tile.getProjection().getUnits() == ol.proj.Units.TILE_PIXELS;
     var pixelScale = pixelRatio / resolution;
-    var tilePixelRatio = source.getTilePixelRatio(pixelRatio);
+    var tilePixelRatio = source.getTilePixelRatio();
     var tilePixelResolution = tileResolution / tilePixelRatio;
     var tileExtent = tileGrid.getTileCoordExtent(
         tile.getTileCoord(), this.tmpExtent);
@@ -76253,10 +76252,14 @@ ol.source.Tile.prototype.getTileCacheForProjection = function(projection) {
 
 
 /**
- * @param {number} pixelRatio Pixel ratio.
+ * Get the tile pixel ratio for this source. Subclasses may override this
+ * method, which is meant to return a supported pixel ratio that matches the
+ * provided `opt_pixelRatio` as close as possible. When no `opt_pixelRatio` is
+ * provided, it is meant to return `this.tilePixelRatio_`.
+ * @param {number=} opt_pixelRatio Pixel ratio.
  * @return {number} Tile pixel ratio.
  */
-ol.source.Tile.prototype.getTilePixelRatio = function(pixelRatio) {
+ol.source.Tile.prototype.getTilePixelRatio = function(opt_pixelRatio) {
   return this.tilePixelRatio_;
 };
 
@@ -79724,7 +79727,7 @@ ol.source.TileArcGISRest.prototype.getRequestUrl_ = function(tileCoord, tileSize
  * @inheritDoc
  */
 ol.source.TileArcGISRest.prototype.getTilePixelRatio = function(pixelRatio) {
-  return pixelRatio;
+  return /** @type {number} */ (pixelRatio);
 };
 
 
@@ -80826,7 +80829,8 @@ ol.source.TileWMS.prototype.getRequestUrl_ = function(tileCoord, tileSize, tileE
  * @inheritDoc
  */
 ol.source.TileWMS.prototype.getTilePixelRatio = function(pixelRatio) {
-  return (!this.hidpi_ || this.serverType_ === undefined) ? 1 : pixelRatio;
+  return (!this.hidpi_ || this.serverType_ === undefined) ? 1 :
+      /** @type {number} */ (pixelRatio);
 };
 
 
@@ -81237,9 +81241,19 @@ ol.source.VectorTile.prototype.getTile = function(z, x, y, pixelRatio, projectio
 /**
  * @inheritDoc
  */
+ol.source.VectorTile.prototype.getTilePixelRatio = function(opt_pixelRatio) {
+  return opt_pixelRatio == undefined ?
+      ol.source.UrlTile.prototype.getTilePixelRatio.call(this, opt_pixelRatio) :
+      opt_pixelRatio;
+};
+
+
+/**
+ * @inheritDoc
+ */
 ol.source.VectorTile.prototype.getTilePixelSize = function(z, pixelRatio, projection) {
   var tileSize = ol.size.toSize(this.tileGrid.getTileSize(z));
-  return [tileSize[0] * pixelRatio, tileSize[1] * pixelRatio];
+  return [Math.round(tileSize[0] * pixelRatio), Math.round(tileSize[1] * pixelRatio)];
 };
 
 
@@ -96743,7 +96757,7 @@ goog.exportProperty(
     ol.control.ZoomToExtent.prototype,
     'unByKey',
     ol.control.ZoomToExtent.prototype.unByKey);
-ol.VERSION = 'v3.18.0';
+ol.VERSION = 'v3.18.1';
 OPENLAYERS.ol = ol;
 
   return OPENLAYERS.ol;
