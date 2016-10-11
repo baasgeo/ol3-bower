@@ -1,6 +1,6 @@
 // OpenLayers 3. See http://openlayers.org/
 // License: https://raw.githubusercontent.com/openlayers/ol3/master/LICENSE.md
-// Version: v3.18.1
+// Version: v3.18.2
 ;(function (root, factory) {
   if (typeof exports === "object") {
     module.exports = factory();
@@ -34779,10 +34779,8 @@ ol.render.canvas.PolygonReplay.prototype.drawFlatCoordinatess_ = function(flatCo
   for (var i = 0; i < numEnds; ++i) {
     var end = ends[i];
     var myBegin = this.coordinates.length;
-    var myEnd = this.appendFlatCoordinates(flatCoordinates, offset, end, stride,
-        // Performance optimization: only close the ring when we do not have a
-        // stroke. Otherwise closePath() will take care of that.
-        !stroke);
+    var myEnd = this.appendFlatCoordinates(
+        flatCoordinates, offset, end, stride, true);
     var moveToLineToInstruction =
         [ol.render.canvas.Instruction.MOVE_TO_LINE_TO, myBegin, myEnd];
     this.instructions.push(moveToLineToInstruction);
@@ -96757,7 +96755,7 @@ goog.exportProperty(
     ol.control.ZoomToExtent.prototype,
     'unByKey',
     ol.control.ZoomToExtent.prototype.unByKey);
-ol.VERSION = 'v3.18.1';
+ol.VERSION = 'v3.18.2';
 OPENLAYERS.ol = ol;
 
   return OPENLAYERS.ol;
