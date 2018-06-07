@@ -20,3 +20,6 @@ Currently, these versions are supported: 3.2.1, 3.3.0, 3.4.0, 3.5.0, 3.6.0, 3.7.
 * `git commit -am "Release version 3.x.x"`
 * `git tag -a 3.x.x -m "v3.x.x"`
 * `git push origin master --tags`
+
+## Maintainer needed
+This library is no longer actively used at [Baasgeo](https://www.baasgeo.com/). It therefore lacks a maintainer who can pay attention to pull requests and issues. If you are an active developer who would like to take over, please open an issue stating your intentions and providing contact information so that the maintainership can be transferred to you.
